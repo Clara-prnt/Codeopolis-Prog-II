@@ -20,7 +20,7 @@ public class City extends GameEntity {
     private GameConfig config;
     private String name;
     private Depot depot;
-    
+
     /**
      * Constructs a new City object with the specified name and game configuration.
      * 
@@ -46,7 +46,7 @@ public class City extends GameEntity {
         this.name = cityState.getName();
         this.config = config;  
         this.fortune = new Random();
-        
+
         this.acres = cityState.getAcres();
         this.planted = new Grain[Game.GrainType.values().length];
         this.residents = cityState.getResidents();
@@ -55,7 +55,7 @@ public class City extends GameEntity {
         this.depot = new Depot(cityState.getSilos());  
     }
 
-    
+
     private void setupCity()
     {
     	this.depot = new Depot(Game.GrainType.values().length, this.config.getSiloCapacity());
@@ -66,7 +66,7 @@ public class City extends GameEntity {
     	this.depot.store(Harvest.createHarvest(Game.GrainType.RICE, this.config.getInitialBushels(Game.GrainType.RICE.ordinal()), this.year));
     	this.depot.store(Harvest.createHarvest(Game.GrainType.RYE, this.config.getInitialBushels(Game.GrainType.RYE.ordinal()), this.year));
     	this.depot.store(Harvest.createHarvest(Game.GrainType.WHEAT, this.config.getInitialBushels(Game.GrainType.WHEAT.ordinal()), this.year));
-    	
+
     	this.acres = config.getInitialAcres();
     	this.residents = config.getInitialResidents();
     }
@@ -81,7 +81,7 @@ public class City extends GameEntity {
     public void expandDepot(int numberOfSilos, int capacityPerSilo) {
     	this.depot.expand(numberOfSilos, capacityPerSilo);
     }
-    
+
 	/**
      * Attempts to buy the specified number of acres at the given price.
      * 
@@ -122,7 +122,7 @@ public class City extends GameEntity {
 			throw new DepotCapacityExceededException("Depot is full, cannot proceed with the sale", this.depot.getTotalFillLevel());
 		}
 	}
-	
+
 	/**
      * Attempts to feed the residents with the specified number of bushels.
      * 
@@ -135,7 +135,7 @@ public class City extends GameEntity {
 		this.depot.takeOut(feed);
 		this.fed = feed;
 	}
-	
+
 	/**
      * Attempts to plant the specified number of acres.
      * 
@@ -198,7 +198,7 @@ public class City extends GameEntity {
 		}
 	}
 
-	
+
 	/**
 	 * Builds a new Harvest object with an equal distribution of grain based on the specified amount.
 	 *
@@ -235,7 +235,7 @@ public class City extends GameEntity {
 		if(peopleStarved < 0)
 			peopleStarved = 0;
 		int peopleStarvedPercentage = (peopleStarved*100) / this.residents;
-		
+
 		//Calculate the new population size
 		int newResidents = 0;
 		if(peopleStarvedPercentage < 40)
@@ -249,23 +249,31 @@ public class City extends GameEntity {
 		//Calculation of the harvest:
 		int[] harvested = new int[Game.GrainType.values().length];
 		Conditions thisYearsConditions = Conditions.generateRandomConditions();
-	
+
+		boolean drought = this.fortune.nextFloat() > 0.8 ? true : false;
+		boolean fusarium = this.fortune.nextFloat() > 0.8 ? true : false;
+		boolean leafDrought = this.fortune.nextFloat() > 0.8 ? true : false;
+		boolean powderyMildew = this.fortune.nextFloat() > 0.8 ? true : false;
+		boolean barleyGoutFly = this.fortune.nextFloat() > 0.8 ? true : false;
+		boolean deliaFly = this.fortune.nextFloat() > 0.8 ? true : false;
+		boolean fritFly = this.fortune.nextFloat() > 0.8 ? true : false;
+
 		for(int i = 0; i< Game.GrainType.values().length; i++) {
 			if(this.planted[i] != null) {
 				this.planted[i].grow(thisYearsConditions);
-				if(thisYearsConditions.isDrought())
+				if(drought)
 					this.planted[i].drought();
-				if(thisYearsConditions.isFusarium())
+				if(fusarium)
 					this.planted[i].diseaseOutbreak(Grain.Diseases.Fusarium, thisYearsConditions);
-				if(thisYearsConditions.isLeafDrought())
+				if(leafDrought)
 					this.planted[i].diseaseOutbreak(Grain.Diseases.LeafDrought, thisYearsConditions);
-				if(thisYearsConditions.isPowderyMildew())
+				if(powderyMildew)
 					this.planted[i].diseaseOutbreak(Grain.Diseases.PowderyMildew, thisYearsConditions);
-				if(thisYearsConditions.isBarleyGoutFly())
+				if(barleyGoutFly)
 					this.planted[i].pestInfestation(Grain.Pests.BarleyGoutFly, thisYearsConditions);
-				if(thisYearsConditions.isDeliaFly())
+				if(deliaFly)
 					this.planted[i].pestInfestation(Grain.Pests.DeliaFly, thisYearsConditions);
-				if(thisYearsConditions.isFritFly())
+				if(fritFly)
 					this.planted[i].pestInfestation(Grain.Pests.FritFly, thisYearsConditions);
 				harvested[i] = this.planted[i].harvest();	
 			}
@@ -276,23 +284,23 @@ public class City extends GameEntity {
 		        Harvest.createHarvest(Game.GrainType.RICE, harvested[Game.GrainType.RICE.ordinal()], this.year), 
 		        Harvest.createHarvest(Game.GrainType.RYE, harvested[Game.GrainType.RYE.ordinal()], this.year), 
 		        Harvest.createHarvest(Game.GrainType.WHEAT, harvested[Game.GrainType.WHEAT.ordinal()], this.year)};
-		
+
 		for(Harvest h : thisYearsHarvest)
 			this.depot.store(h); //Issue #40
-		
+
 		//Calculation of how much grain was eaten by rats: 
 		int ateByRates = 0;
 		if(this.depot.getTotalFillLevel() > 0)
 			ateByRates = this.fortune.nextInt((this.depot.getTotalFillLevel()*this.config.getMaxRateInfestation())/100);
 		this.depot.takeOut(ateByRates);
-		
+
 		//Bushels in the depot decay. 
 		int bushelsDecayed = this.depot.decay(this.year);
-		
+
 		//Increment the year by 1:
 		this.year++;
-		
-		
+
+
 		return new TurnResult(this.name, 
 				this.year, 
 				newResidents, 
@@ -308,7 +316,7 @@ public class City extends GameEntity {
 				this.depot.totalCapacity() - this.depot.getTotalFillLevel(), 
 				this.depot.toString());
 	}
-	
+
 	/**
      * Checks if the city is extinct (has no residents).
      * 
@@ -345,4 +353,3 @@ public class City extends GameEntity {
 	}
 
 }
-
