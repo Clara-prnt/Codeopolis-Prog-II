@@ -1,4 +1,4 @@
 ## This is a branch 
 
-### HEHEHEHA
+### This Project was intended to create a game in Java with multiple caracteristics.
 
